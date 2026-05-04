@@ -2,8 +2,9 @@ const messagesContainer = document.getElementById('messages');
 const messageInput = document.getElementById('messageInput');
 const sendButton = document.getElementById('sendButton');
 
-// Create WebSocket connection.
-const socket = new WebSocket('ws://localhost:8080/echo');
+// Create WebSocket connection dynamically based on the current host
+const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+const socket = new WebSocket(`${protocol}//${window.location.host}/echo`);
 
 function appendMessage(text, type) {
     const messageEl = document.createElement('div');
