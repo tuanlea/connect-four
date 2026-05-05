@@ -11,48 +11,75 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import com.peddex.demo.websocket.model.ChatMessage;
+import com.peddex.demo.websocket.model.MoveMessage;
+
 public class EchoWebSocketHandler extends TextWebSocketHandler {
 
-    // 1. Thread-safe list to hold all connected players
     private final List<WebSocketSession> sessions = new CopyOnWriteArrayList<>();
-    
-    // 2. Jackson ObjectMapper to easily read/write JSON
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
-        sessions.add(session); // Add player to the lobby
+        sessions.add(session);
         System.out.println("Client connected: " + session.getId());
     }
 
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
         try {
-            // Parse incoming JSON string into an object
             JsonNode jsonNode = objectMapper.readTree(message.getPayload());
             String type = jsonNode.has("type") ? jsonNode.get("type").asText() : "";
 
             if ("join".equals(type)) {
-                // The handshake: save their username to their session
                 String username = jsonNode.has("username") ? jsonNode.get("username").asText() : "Anonymous";
                 session.getAttributes().put("username", username);
                 
-                // Broadcast to EVERYONE that someone joined
                 String joinMessage = objectMapper.writeValueAsString(
                         new ChatMessage("system", username + " has joined the chat.")
                 );
                 broadcast(joinMessage);
                 
+                // --- SEND EXISTING PLAYERS TO THE NEW CLIENT ---
+                for (WebSocketSession s : sessions) {
+                    if (s != session && s.isOpen()) {
+                        String existingUser = (String) s.getAttributes().get("username");
+                        Integer exX = (Integer) s.getAttributes().get("x");
+                        Integer exY = (Integer) s.getAttributes().get("y");
+                        
+                        if (existingUser != null && exX != null && exY != null) {
+                            String stateMessage = objectMapper.writeValueAsString(
+                                    new MoveMessage("move", existingUser, exX, exY)
+                            );
+                            session.sendMessage(new TextMessage(stateMessage));
+                        }
+                    }
+                }
+                
             } else if ("chat".equals(type)) {
-                // Get the sender's username from their session
                 String username = (String) session.getAttributes().getOrDefault("username", "Anonymous");
                 String content = jsonNode.has("content") ? jsonNode.get("content").asText() : "";
                 
-                // Broadcast their chat message to EVERYONE
                 String chatMessage = objectMapper.writeValueAsString(
                         new ChatMessage("chat", content, username)
                 );
                 broadcast(chatMessage);
+                
+            } else if ("move".equals(type)) {
+                // Handle Movement sync
+                String username = (String) session.getAttributes().getOrDefault("username", "Anonymous");
+                int x = jsonNode.has("x") ? jsonNode.get("x").asInt() : 0;
+                int y = jsonNode.has("y") ? jsonNode.get("y").asInt() : 0;
+                
+                // Save true coordinates to session state
+                session.getAttributes().put("x", x);
+                session.getAttributes().put("y", y);
+                
+                // Broadcast movement to all clients
+                String moveMessage = objectMapper.writeValueAsString(
+                        new MoveMessage("move", username, x, y)
+                );
+                broadcast(moveMessage);
             }
         } catch (Exception e) {
             System.err.println("Error processing message: " + e.getMessage());
@@ -61,19 +88,19 @@ public class EchoWebSocketHandler extends TextWebSocketHandler {
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
-        sessions.remove(session); // Remove from lobby
+        sessions.remove(session);
         
         String username = (String) session.getAttributes().get("username");
         if (username != null) {
+            // We pass the username so the frontend knows who exactly to remove from the game board!
             String leaveMessage = objectMapper.writeValueAsString(
-                    new ChatMessage("system", username + " has left the chat.")
+                    new ChatMessage("system", username + " has left the chat.", username)
             );
             broadcast(leaveMessage);
         }
         System.out.println("Client disconnected: " + session.getId());
     }
 
-    // Helper method to loop through all connected players and send them a message
     private void broadcast(String messagePayload) {
         TextMessage textMessage = new TextMessage(messagePayload);
         for (WebSocketSession session : sessions) {
@@ -84,24 +111,6 @@ public class EchoWebSocketHandler extends TextWebSocketHandler {
             } catch (IOException e) {
                 System.err.println("Error broadcasting to session: " + e.getMessage());
             }
-        }
-    }
-
-    // Simple DTO class to help build JSON responses cleanly
-    private static class ChatMessage {
-        public String type;
-        public String content;
-        public String username;
-
-        public ChatMessage(String type, String content) {
-            this.type = type;
-            this.content = content;
-        }
-
-        public ChatMessage(String type, String content, String username) {
-            this.type = type;
-            this.content = content;
-            this.username = username;
         }
     }
 }
