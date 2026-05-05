@@ -96,3 +96,55 @@ body {
     cursor: not-allowed;
     color: #94a3b8;
 }
+
+/* --- LOBBY OVERLAY STYLES --- */
+.lobby-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(15, 23, 42, 0.85); /* Dark transparent background */
+    backdrop-filter: blur(5px); /* Premium blur effect */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000; /* Ensures it sits on top of the game board */
+}
+
+.lobby-card {
+    background-color: #1e293b;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.8);
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    width: 300px;
+}
+
+.lobby-card h2 { margin: 0; color: #f8fafc; }
+.lobby-card input {
+    padding: 12px;
+    border: 2px solid #334155;
+    border-radius: 8px;
+    background-color: #0f172a;
+    color: #f8fafc;
+    outline: none;
+    font-size: 1rem;
+}
+.lobby-card input:focus { border-color: #3b82f6; }
+.lobby-card button {
+    background-color: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.2s;
+}
+.lobby-card button:hover { background-color: #2563eb; }
+/* ---------------------------- */

@@ -8,10 +8,23 @@
 </head>
 <body>
 
+<!-- THE LOBBY OVERLAY -->
+<div id="lobbyOverlay" class="lobby-overlay">
+    <div class="lobby-card">
+        <h2>Welcome to WebGame</h2>
+        <input type="text" id="usernameInput" placeholder="Enter your name..." autocomplete="off">
+        <button id="joinGameBtn">Join Game</button>
+    </div>
+</div>
+
+
 <div class="chat-container">
     <div class="chat-header">
         WebSocket Echo Chat
     </div>
+    <!-- This is our new game board! -->
+    <canvas id="gameCanvas" width="400" height="250" style="background-color: #0f172a; border-bottom: 2px solid #334155;"></canvas>
+
     <div class="chat-messages" id="messages">
         <div class="message system">Connecting to server...</div>
     </div>
